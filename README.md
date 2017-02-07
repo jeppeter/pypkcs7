@@ -42,10 +42,12 @@ if __name__ == '__main__':
     main()
 ```
 
+* command
 ```shell
 python example.py  examplecc6342223345533222
 ```
 
+* output
 ```text
 ['examplecc6342223345533222'] enc => ['examplecc6342223345533222\x07\x07\x07\x07\x07\x07\x07'] dec => ['examplecc6342223345533222']
 ```
