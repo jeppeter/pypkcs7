@@ -43,12 +43,12 @@ wait_file_until()
 	done	
 }
 
-rm -f $script_dir/pcks7/__init__.py.touched 
+rm -f $script_dir/pkcs7/__init__.py.touched 
 rm -f $script_dir/test/release/release.py.touched
 
 $PYTHON $script_dir/make_setup.py
-$PYTHON $script_dir/src/pcks7/__init_debug__.py --release -v $script_dir/pcks7/__init__.py
-wait_file_until "$script_dir/pcks7/__init__.py.touched"
+$PYTHON $script_dir/src/pkcs7/__init_debug__.py --release $script_dir/pkcs7/__init__.py
+wait_file_until "$script_dir/pkcs7/__init__.py.touched"
 
 $PYTHON $script_dir/test/release/releasetest.py release
 wait_file_until "$script_dir/test/release/release.py.touched"
