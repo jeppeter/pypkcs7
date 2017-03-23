@@ -21,19 +21,15 @@ def _reload_pkcs7_debug_path(curpath):
 	return _release_path_test(curpath,'__init_debug__.py')
 
 
-def _reload_rtools_path(curpath):
-	return _release_path_test(curpath,'rtools.py')
 
 topdir = os.path.abspath(os.path.join(os.path.abspath(os.path.dirname(__file__)),'..','..'))
 _reload_pkcs7_path(topdir)
-_reload_rtools_path(topdir)
 
 import extargsparse
 import logging
 import unittest
 import re
 import importlib
-import rtools
 import tempfile
 import subprocess
 import platform
@@ -42,6 +38,7 @@ import time
 from pkcs7 import PKCS7Encoder
 from pkcs7 import __version__ as pkcs7_version
 from pkcs7 import __version_info__ as pkcs7_version_info
+from disttools import release_file,release_get_catch
 
 
 test_placer_holder=True
@@ -105,7 +102,7 @@ def release_handler(args,parser):
 	repls = dict()
 
 	logging.info('includes %s repls %s'%(includes,repr(repls)))
-	s = rtools.release_get_catch(mod,includes,[],repls)
+	s = release_get_catch(mod,includes,[],repls)
 	outs = slash_string(s)
 	releaserepls = dict()
 	releasekey = 'test_placer_holder'
@@ -113,7 +110,7 @@ def release_handler(args,parser):
 	releasekey += "True"
 	releaserepls[releasekey] = outs
 	logging.info('releaserepls %s'%(repr(releaserepls)))
-	rtools.release_file(None,args.release_output,[],[],[],releaserepls)
+	release_file(None,args.release_output,[],[],[],releaserepls)
 	sys.exit(0)
 	return
 

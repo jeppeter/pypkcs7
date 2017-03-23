@@ -2,6 +2,7 @@
 > python package pkcs7 conform for the [RFC5652](https://tools.ietf.org/html/rfc5652#section-6.3)
 
 ### Release History
+* Mar 23th 2017 Release 0.1.2 to fixup the bug not according to pkcs7 protocol
 * Feb 8th 2017 Release 0.1.0 to release first version of pkcs7
 
 ### install

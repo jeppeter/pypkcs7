@@ -36,45 +36,26 @@ class PKCS7Encoder(object):
         assert(k > 1)
         self.__klen = k
 
-    def __decode_inner(self,text):
-        '''
-        Remove the PKCS#7 padding from a text string
-        '''
-        nl = len(text)
-        val = ord(text[-1])
-        if nl > self.__klen:
-            raise Exception('inner error len(%d) > %d'%(nl,self.__klen))
-
-        # now check whether the code is the same
-        delval = 0
-        if val > 0 and val < self.__klen:
-            delval = 1
-            for i in range(val):
-                curval = ord(text[nl-i-1])
-                if curval != val:
-                    delval=0
-                    break
-        if delval > 0:
-            l = nl - val
-        else:
-            l = nl
-        return text[:l]
-
     ## @param text The padded text for which the padding is to be removed.
     # @exception ValueError Raised when the input padding is missing or corrupt.
     def decode(self, text):
         dectext = ''
-        if len(text) > self.__klen:
-            i = 0
-            while i < len(text):
-                clen = len(text) - i
-                if clen > self.__klen:
-                    clen = self.__klen
-                curtext = text[i:(i+clen)]
-                dectext += self.__decode_inner(curtext)
-                i += clen
+        if (len(text) % self.__klen) != 0:
+            raise Exception('text not %d align'%(self.__klen))
+        lastch = ord(text[-1])
+        if lastch <= self.__klen and lastch != 0 :
+            trimlen = lastch
+            textlen = len(text)
+            for i in range(lastch):
+                if ord(text[textlen - i - 1]) != lastch:
+                    trimlen = 0
+                    break
+            if trimlen == 0:
+                dectext = text
+            else:
+                dectext = text[:(textlen-trimlen)]
         else:
-            dectext = self.__decode_inner(text)
+            dectext = text
         return dectext
 
     def get_bytes(self,text):
@@ -97,37 +78,28 @@ class PKCS7Encoder(object):
         totallen = len(text)
         passlen = 0
         enctext = ''
-        #logging.info('all text (%s)'%(self.get_bytes(text)))
-        while passlen < totallen:
-            curlen = self.__klen
-            if curlen > (totallen - passlen):
-                curlen = (totallen - passlen)
-            curtext = text[passlen:(passlen+curlen)]
-            #logging.info('[%d] curtext (%s)'%(passlen,self.get_bytes(curtext)))
-            val = ord(curtext[-1])
-            addval = 0
-            #logging.info('val %d curlen %d'%(val,curlen))
-            if curlen == self.__klen and val > 0 and val < self.__klen:
-                addval = 1
-                for i in range(val):                    
-                    curval = ord(curtext[curlen-i-1])
-                    #logging.info('[%d]curval %d'%((-i),curval))
-                    if curval != val:
-                        addval = 0
+        if (len(text) % self.__klen) != 0:
+            enctext = text
+            leftlen = self.__klen - (len(text) % self.__klen)
+            lastch = chr(leftlen)
+            enctext += lastch * leftlen
+        else:
+            lastch = ord(text[-1])
+            if lastch <= self.__klen and lastch != 0:
+                trimlen = self.__klen
+                textlen = len(text)
+                for i in range(lastch):
+                    if lastch != ord(text[(textlen-i-1)]):
+                        trimlen = 0
                         break
-            if addval != 0:
-                passlen += (curlen - 1)
-                enctext += curtext[:(curlen - 1)]
-                enctext += chr(1)                
-            else:
-                if curlen < self.__klen:
-                    enctext += curtext
-                    for _ in range(self.__klen - curlen):
-                        enctext += chr(self.__klen - curlen)
+                if trimlen == 0:
+                    enctext = text
                 else:
-                    enctext += curtext
-                passlen += curlen
-            #logging.info('passlen %d'%(passlen))
+                    enctext = text
+                    enctext += chr(self.__klen) * self.__klen
+            else:
+                enctext = text
+
         return enctext
 
     ## @param text The text to encode.
@@ -164,6 +136,27 @@ class debug_pkcs7_testcase(unittest.TestCase):
         dectext = pkcs7.decode(enctext)
         outbytes = pkcs7.get_bytes(dectext)
         logging.info('input (%s) output (%s)'%(inbytes,outbytes))
+        self.assertEqual(inbytes,outbytes)
+        return
+
+    def test_A002(self):
+        inbytes=[0x33,0x32,0x54,0x33,0x32,0x54,0x33,0x32,0x54,0x33,0x32,0x54,0x3,0x3,0x3,0x3]
+        k = 16
+        pkcs7 = PKCS7Encoder(k)
+        enctext = pkcs7.encode(pkcs7.get_text(inbytes))
+        dectext = pkcs7.decode(enctext)
+        outbytes = pkcs7.get_bytes(dectext)
+        logging.info('input (%s) output (%s)'%(inbytes,outbytes))
+        self.assertEqual(inbytes,outbytes)
+        return
+
+    def test_A003(self):
+        inbytes=[116, 253, 230, 186, 227, 1, 210]
+        k = 118
+        pkcs7 = PKCS7Encoder(k)
+        enctext = pkcs7.encode(pkcs7.get_text(inbytes))
+        dectext = pkcs7.decode(enctext)
+        outbytes = pkcs7.get_bytes(dectext)
         self.assertEqual(inbytes,outbytes)
         return
 
@@ -206,8 +199,8 @@ class debug_pkcs7_rand_testcase(unittest.TestCase):
         return
 
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..')))
-import rtools
+
+from disttools import release_file
 
 def debug_release():
     if '-v' in sys.argv[1:]:
@@ -238,7 +231,7 @@ def debug_release():
     repls[r'VERSIONNUMBER'] = VERSIONNUMBER
     repls[r'"VERSIONINFO"'] = VERSIONINFO
     logging.info('repls %s tofile (%s)'%(repls.keys(),tofile))
-    rtools.release_file('__main__',tofile,[r'^debug_*'],[[r'##importdebugstart.*',r'##importdebugend.*']],[],repls)
+    release_file('__main__',tofile,[r'^debug_*'],[[r'##importdebugstart.*',r'##importdebugend.*']],[],repls)
     return
 
 def debug_main():
