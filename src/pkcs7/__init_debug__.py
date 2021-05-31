@@ -40,14 +40,18 @@ class PKCS7Encoder(object):
     # @exception ValueError Raised when the input padding is missing or corrupt.
     def decode(self, text):
         dectext = ''
+        # If text is a bytes array, indexing the array already returns an int
+        # therefor we can turn the ord() into a nop
+        # https://github.com/jeppeter/extargsparse/issues/1
+        _ord_ = ord if isinstance(text, str) else lambda x: x
         if (len(text) % self.__klen) != 0:
             raise Exception('text not %d align'%(self.__klen))
-        lastch = ord(text[-1])
+        lastch = _ord_(text[-1])
         if lastch <= self.__klen and lastch != 0 :
             trimlen = lastch
             textlen = len(text)
             for i in range(lastch):
-                if ord(text[textlen - i - 1]) != lastch:
+                if _ord_(text[textlen - i - 1]) != lastch:
                     trimlen = 0
                     break
             if trimlen == 0:
